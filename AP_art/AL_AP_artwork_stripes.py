@@ -92,7 +92,7 @@ plt.imsave(imgname+'_conv.png',kd_pil);
 print('Writing',len(boundary_output),'Objects')
 for sq in boundary_output:
     # gdspy doesn't seem to care about the system unit. Converting to um
-    rect = gdspy.Rectangle((sq[0]/1000.0,1000-sq[2]/1000.0),(sq[1]/1000.0,1000-sq[3]/1000.0),**ld_AP)
+    rect = gdspy.Rectangle((sq[0],1000000-sq[2]),(sq[1],1000000-sq[3]),**ld_AP)
     cell.add(rect)
 cell.write_svg(imgname+'_GDS.svg')
 lib.write_gds('AL_AP_artwork_output.gds')
