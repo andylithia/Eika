@@ -1,10 +1,12 @@
 # Converting a given image file to GDS
 # Dependencies: numpy, gdspy, PIL
+# May 8 2022 - AL AnalogMiko.com 
 
 import gdspy
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+
 
 # Define AP Layer Data Type
 ld_AP = {"layer":74, "datatype": 0}
