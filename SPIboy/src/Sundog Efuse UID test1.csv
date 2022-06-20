@@ -1,0 +1,28 @@
+reset_n,tr,beam_upd,spi_csn,measure,repeat,spi_clk,din,mask,addr_type,CHIP ID,CMD,DATA,Comment
+set EFUSE_FSOURCE to 1.5V
+1,0,0,0,,,32 cycles,0x00788C03,0x0000,1,0x0001,0b1000110,0x00000078,set programming time 10 ms
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00808003,0x0000,1,0x0001,0b1000000,0x00000080,set efuse row pointer to 128
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00008203,0xFFFF0000,1,0x0001,0b1000001,0x00000000,low 16 bits of UID
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00008403,0xFFFF0000,1,0x0001,0b1000010,0x00000000,high 16 bits of UID
+1,0,0,1,,,0,,,,,,,
+Note the following command must have the clock runing extended cycles for the programming timer to count down based on 12 MHz clock I expect this to be > 32*(120+5) cycle + 32 for transaction
+1,0,0,0,,,4032 cycles,0x0000C003,0x0000,1,0x0001,0b1100000,0x00000000,program row
+1,0,0,1,,,0,,,,,,,
+Set EFUSE_FSOURCE to GND
+0,0,0,0,,,1300 cycles,,,,,,,issue reset
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x219C0003,0x0000,1,0x0001,0b0000000,0x0000219C,set pointer efuse data debug row 128
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00000203,0x0000,1,0x0001,0b0000001,0x00000000,read low 16 bits of data
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00000203,0x0000,1,0x0001,0b0000001,0x00000000,read high 16 bits of data
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x219A0003,0x0000,1,0x0001,0b0000000,0x0000219A,set pointer to UID
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00000203,0x0000,1,0x0001,0b0000001,0x00000000,read low 16 bits of data
+1,0,0,1,,,0,,,,,,,
+1,0,0,0,,,32 cycles,0x00000203,0x0000,1,0x0001,0b0000001,0x00000000,read high 16 bits of data
+1,0,0,1,,,0,,,,,,,

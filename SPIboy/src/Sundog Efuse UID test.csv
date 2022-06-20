@@ -1,0 +1,10 @@
+reset_n,tr,beam_upd,spi_csn,measure,repeat,spi_clk,din,mask,addr_type,CHIP ID,CMD,DATA,Comment,,1,,,32 cycles,0x00788C03,0x0000,1,0x0001,0b1000110,0x00000078,set programming time 10 ms
+,,0,,,0,,,,,,,
+,,1,,,32 cycles,0x00808003,0x0000,1,0x0001,0b1000000,0x00000080,set efuse row pointer to 128
+,,0,,,0,,,,,,,
+,,1,,,32 cycles,0x00008203,0xFFFF0000,1,0x0001,0b1000001,0x00000000,low 16 bits of UID
+,,0,,,0,,,,,,,
+,,1,,,32 cycles,0x00008403,0xFFFF0000,1,0x0001,0b1000010,0x00000000,high 16 bits of UID
+,,0,,,0,,,,,,,
+,,1,,,4032 cycles,0x0000C003,0x0000,1,0x0001,0b1100000,0x00000000,program row
+,,0,,,0,,,,,,,

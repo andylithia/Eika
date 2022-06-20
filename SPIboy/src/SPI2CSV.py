@@ -1,16 +1,53 @@
 class SPI2CSV:
     
     def __init__(self, spiParam:dict, cmdDict:dict, regDict:dict) -> None:
+        """
+        SPI Interface Init
+        Keyword arguments:
+        :spiParam: A dictionary of spi parameters
+        :cmdParam: A dictionary of spi commands
+                    {
+                        Command Name (str) : Command (int),
+                        ... 
+                    }
+        :regDict:  A dictionary of SPI Addr <-> Physical Register 
+                    {
+                        Reg Name (str) : [
+                            [ACACIA Address (int), rw (str), base (int), wordsize (int)],
+                            [SPI Address (int),    rw (str), base (int), wordsize (int)],
+                            Comment (str),
+                            Omit Config (int
+                                The omit config is useful for documentation
+                                It allows you to omit parts of the dictionary when printing out
+                                bit 0 = Omit All
+                                bit 1 = Omit Comment
+                                )
+                        ],
+                        ...
+                    }
+        :return:   None
+        """
         self.spiParam = spiParam;
         self.cmdDict  = cmdDict;
         self.regDict  = regDict;
-        self.oBuf = [];
-        pass
+        self.oBuf = []
+        # pinState also deals with RST & CE, but not clk
+        self.pinState = {\
+            self.spiParam['rst_pin']: False,
+            self.spiParam['ce_pin']: False
+            }
+        for pin in self.spiParam['other_pins']:
+            self.pinState[pin] = False
 
-    def __str__(self) -> str:
         pass
 
     def i2hexStr(self, i:int) -> str:
+        """
+        i2hexStr: Convert integer to hexadecimal string
+        The word size & bit order are configured in self.spiParam
+        :i:      Input integer
+        :return: The hexadecimal string
+        """
         b = i;
         if(self.spiParam['LSBfirst']):
             b = '{:0{width}b}'.format(b, width=self.spiParam['wordsize'])
@@ -19,6 +56,7 @@ class SPI2CSV:
 
     def writeRegDict(self, fname: str, dict='', target='readable', omitEnable=False) -> str:
         from tabulate import tabulate
+        # The tabulate library is used for pretty printing
         print('\'tabulate\' package loaded')
         import csv
         print('\'csv\' package loaded')
@@ -191,7 +229,15 @@ class SPI2CSV:
         # Toggle CE pin
         lines[0]['pins'] = {self.spiParam['ce_pin']:not self.spiParam['ce_active_high']}
         lines[1]['pins'] = {self.spiParam['ce_pin']:    self.spiParam['ce_active_high']}
-        
+
+        # Populate the other pins
+        for pin in self.pinState.keys():
+            if pin not in lines[0]['pins'].keys():
+                # Untouched Pin
+                lines[0]['pins'][pin] = self.pinState[pin]
+                lines[1]['pins'][pin] = self.pinState[pin]
+
+
         # Generate Clock
         if IDType==1:
             if clkc < 32:
@@ -201,26 +247,171 @@ class SPI2CSV:
                 print('Warning: Clock cycle < 64 for ID Type 0');
 
         lines[0]['sclk'] = '{:d} cycles'.format(clkc);
-        lines[1]['sclk'] = self.spiParam['cidle']      # The clock stays idle 
+        lines[1]['sclk'] = self.spiParam['cidle']      # the clock stays idle 
         
         # Generate Data
         if(IDType==1):
             # 8-bit addressing
-            lines[0]['chipID'] = '0b{:08b}'.format(id)
+            lines[0]['chipID'] = id
         else:
             # 32-bit addressing
-            lines[0]['chipID'] = '0x{:08X}'.format(id)
+            lines[0]['chipID'] = id
 
         # Generate Command
         lines[0]['command'] = self.cmdDict[cmd]
         # Generate Data
         if type(data) is str:
-            lines[0]['payload'] = self.regDict[data]
+            lines[0]['payload'] = self.regDict[data][1][0]
         elif type(data) is int:
             lines[0]['payload'] = data
 
         lines[0]['mask'] = mask
         lines[0]['comment'] = comment
+        lines[0]['IDType']  = IDType
         
         self.oBuf = self.oBuf + lines
         return self.oBuf
+    
+    def showOBuf(self) -> list:
+        print(self.oBuf)
+        return self.oBuf
+
+    def pinDeposit(self, pinDict:dict) -> list:
+        for pin in pinDict:
+            if pin not in self.pinState.keys():
+                print('ERROR: pinDeposit touches undefined pin: {:s}'.format(pin))
+            self.pinState[pin] = pinDict[pin]
+        return self.pinState
+
+    def wCommentLine(self, line:str) -> list:
+        self.oBuf.append({'commentLine':line})
+        return self.oBuf
+    
+
+    def __b10(self, i:bool,xnor:bool)->int:
+        if i:
+            if xnor:
+                return 1
+            else:
+                return 0
+        else:
+            if xnor:
+                return 0
+            else:
+                return 1
+
+    def wReset(self, clkc:int=1300, comment:str='') -> list:
+        lines = [{},{}]
+        
+        lines[0]['sclk'] = '{:d} cycles'.format(clkc);
+        lines[1]['sclk'] = self.spiParam['cidle']      # the clock stays idle 
+        
+        lines[0]['comment'] = comment
+
+        lines[0]['pins'] = {}
+        lines[1]['pins'] = {}
+        
+        # Toggle CE pin
+        lines[0]['pins'] = {\
+            self.spiParam['ce_pin']: not self.spiParam['ce_active_high'],
+            self.spiParam['rst_pin']:self.__b10(False, self.spiParam['rst_active_high'])}
+        lines[1]['pins'] = {\
+            self.spiParam['ce_pin']:    self.spiParam['ce_active_high'],
+            self.spiParam['rst_pin']:self.__b10(True,  self.spiParam['rst_active_high'])}
+
+        # Populate the other pins
+        for pin in self.pinState.keys():
+            if pin not in lines[0]['pins'].keys():
+                # Untouched Pin
+                lines[0]['pins'][pin] = self.pinState[pin]
+                lines[1]['pins'][pin] = self.pinState[pin]
+
+        self.oBuf = self.oBuf + lines
+        return self.oBuf
+
+    def writeCSV(self, fname:str) -> list:
+        # import csv
+        # We don't use the csv library
+        rst_pinName = self.spiParam['rst_pin']
+        ce_pinName  = self.spiParam['ce_pin']
+        clk_pinName = self.spiParam['clk_pin']
+        # Commit the internal buffer to a csv file
+        # Generate the first row, GF SPI Test Format
+
+        extPinList  = self.spiParam['other_pins']
+        pinState = [0]*(len(extPinList)+2)
+        firstRow = '{:s}'.format(rst_pinName)
+
+        for pinID in range(len(extPinList)):
+            # Populate the extra pins
+            firstRow=firstRow+',{:s}'.format(extPinList[pinID])
+        firstRow = firstRow + ',{:s},measure,repeat,{:s},din,mask,addr_type,CHIP ID,CMD,DATA,Comment\n'.format(ce_pinName,clk_pinName)
+        oBuf_CSV = [firstRow]
+
+    
+        for line in self.oBuf :
+            # For the pins, we won't do any logic here.
+            # All pin toggling, keeping, etc are done in the SPI.w function
+            if 'commentLine' in line:
+                oline = line['commentLine']
+            else:
+                if  rst_pinName in line['pins']:
+                    oline = '{:1d}'.format(self.__b10(line['pins'][rst_pinName],self.spiParam['rst_active_high']))
+                else:
+                    oline = ''
+
+                for pin in extPinList:
+                    if pin in line['pins']:
+                        oline = oline + ',{:1d}'.format(self.__b10(line['pins'][pin],True))
+                    else:
+                        oline = oline + ','
+                
+                if ce_pinName in line['pins']:
+                    oline = oline + ',{:1d}'.format(self.__b10(line['pins'][ce_pinName],self.spiParam['ce_active_high']))
+                else:
+                    oline = oline + ','
+
+                for feature in ['measure', 'repeat', 'sclk']:
+                    if feature in line.keys():
+                        oline = oline + ',' + str(line[feature])
+                    else:
+                        oline = oline + ','
+                
+                # Construct DIN
+                # TODO: Deal with 64-bit transactions
+                if 'command' in line.keys():
+                    if line['IDType']>1:
+                        print('ERROR: addr_type too long')
+                    if line['payload']>0xFFFF:
+                        print('ERROR: payload too long')
+                    if line['command']>0x7F:
+                        print('ERROR: command too long')
+                    if line['chipID']>0xFF:
+                        print('ERROR: chipID too long or wrong IDType')
+
+                    din = (line['chipID']<<1) | (line['command']<<9) | (line['payload']<<16) | line['IDType'] 
+                    oline = oline + ',0x{:08X}'.format(din)
+                    if 'mask' in line.keys():
+                        oline = oline + ',0x{:04X}'.format(line['mask'])
+                    else:
+                        oline = oline + ','
+                    if 'IDType' in line.keys():
+                        oline = oline + ',{:1d}'.format(line['IDType'])
+                    else:
+                        oline = oline + ','
+                    oline = oline + ',0x{:04X},0b{:07b},0x{:08X}'.format(line['chipID'], line['command'], line['payload'])
+                else:
+                    oline = oline + ',,,,,,'
+
+                if 'comment' in line.keys():
+                    oline = oline + ',' + line['comment']
+                else:
+                    oline = oline + ','
+
+
+            oBuf_CSV.append(oline+'\n')
+
+        with open(fname,'w+') as f:
+            f.writelines(oBuf_CSV)
+
+        return oBuf_CSV
