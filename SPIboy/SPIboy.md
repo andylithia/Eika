@@ -123,21 +123,39 @@ The omit config associated with each register should be:
 
 ## Methods of the SPI2CSV class
 
-### SPI = SPI2CSV.SPI2CSV(spiParam, cmdDict, regDict)
-Instantiate __init__ function: load the three dictionaries
+### **SPI = SPI2CSV.SPI2CSV(spiParam, cmdDict, regDict)**
+Instantiating function *\_\_init\_\_*: load the three dictionaries
 
-### SPI2CSV.i2hexStr(i:int) -> str
+### **SPI2CSV.i2hexStr(i:int) -> str**
 Convert an integer to a 32bit hex string (in '0x??' form)
 
 If spiParam['LSBfirst'] == True, the bit sequence will be inverted
 
-### SPI2CSV.writeRegDict(fname:str, dict:dict, target:str, omitEnable:bool)
+### **SPI2CSV.writeRegDict(fname:str, dict:dict, target:str, omitEnable:bool)**
 Output the dictionary in one of the following formats:
-- target='readable': Human readable
-- target='csv': CSV file, intened for documentation
+- **target**='readable': Human readable
+- **target**='csv': CSV file, intened for documentation
 
-### SPI2CSV.w(id, cmd, data, mask, clkc, comment, IDType])
-Write a line into the output buffer
-- id: chip ID
-- cmd: command str
-- 
+### **SPI2CSV.w(id, cmd, data, mask, clkc, comment, IDType])**
+Add a entry in the internal buffer that performs an SPI transaction
+- **id**: chip ID
+- **cmd**:  command str
+- **data**: payload str
+- **mask**: Some part of the final DIN data field can be marked as "modifiable", which means that GF can change it on the fly. For example, for a 32-bit transcation, a mask of 0xFFFF0000 means that DIN[31:16] are marked as editible
+- **clkc**: How many clocks to run for this transaction. The default value is 32
+- **comment**: A comment string
+- **IDType**: Not implemented yet. When IDType=0 the transaction should be 64-bit, in which 32 bits are the long chip ID
+
+### **SPI2CSV.pinDeposit(pinDict)**
+Add a entry in the internal buffer that changes the internal state of pins, does not write directly to the final CSV file
+- **pinDict**: A {str:bool} dictionary of all the pins that will be changed
+
+### **SPI2CSV.wCommentLine(line)**
+Add a entry in the internal buffer that writes a comment line. (i.e. the entire line is occupied by a single comment, all the other fields are left empty)
+- **line**: A comment string
+
+### **SPI2CSV.wReset(clkc, comment)**
+Add a entry in the internal buffer that issues a reset. The reset will last *clkc* clock cycles
+
+### **SPI2CSV.writeCSV(fname)**
+Commit the internal buffer to the final CSV file requested by GF

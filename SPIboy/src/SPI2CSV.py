@@ -69,7 +69,7 @@ class SPI2CSV:
             print('! Error: Unknown listing target: ', target)
             return
         
-        f = open(fname,'w+',encoding="utf-8", newline="")
+        f = open(fname,'w+', encoding='cp1252' ,newline="")
         if(not f):
             print('! Error: File open failed: ', fname)
             return
