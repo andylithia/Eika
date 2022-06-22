@@ -111,7 +111,7 @@ class SPI2CSV:
                     continue
                 else:
                     spi_lsb     = int(line[3][2])
-                    spi_msb     = int(line[3][3])+spi_lsb
+                    spi_msb     = int(line[3][3])+spi_lsb-1
                     # SPI Mapped
                     line_out[2] = line[3][1] # R/W
                     line_out[3] = 'N/A'
@@ -124,7 +124,7 @@ class SPI2CSV:
                 # acacia_lsb  = acacia_base%16
                 # acacia_msb  = int(line[2][3])+acacia_lsb
                 acacia_lsb  = acacia_base
-                acacia_msb  = int(line[2][3])+acacia_lsb
+                acacia_msb  = int(line[2][3])+acacia_lsb-1
                 
                 if(not mapped_spi):
                     # ACACIA Mapped
@@ -154,7 +154,7 @@ class SPI2CSV:
                     line_out[0] = '...'
                     line_out[1] = '...'
                 if(line[7]&0x02):
-                    line_out[6] = ''
+                    line_out[6] = '...'
             lines_out.append(line_out)
         
         if(omitEnable):
@@ -179,6 +179,7 @@ class SPI2CSV:
         if(target=='csv'):
             print('Writing CSV File...')
             writer = csv.writer(f)
+            writer.writerow(firstrow)
             writer.writerows(lines_out1)
             
         elif(target=='readable'):
